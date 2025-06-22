@@ -1,0 +1,510 @@
+# iMars MG5KTL-2M — ESPHome example configuration
+#
+# Copy this file into your ESPHome project directory and rename as desired.
+# Provide the required values in secrets.yaml:
+#   wifi_ssid, wifi_password
+#   esphome_web_username, esphome_web_password
+#   esphome_api_encryption_key
+#
+# Optional: change ${ap_password} below if you keep the fallback AP enabled.
+#
+# Author: https://github.com/Agusx1211
+
+substitutions:
+  device_name: imars-mg5ktl-2m
+  friendly_name: iMars MG5KTL-2M
+  device_description: "INVT iMars Solar Inverter Monitoring"
+  ap_password: "CHANGE_ME_AP_PASS"
+
+esphome:
+  name: ${device_name}
+  comment: ${device_description}
+  name_add_mac_suffix: false
+
+esp8266:
+  board: d1_mini
+
+logger:
+  level: INFO           # set to DEBUG while testing
+
+api:
+  encryption:
+    key: !secret esphome_api_encryption_key
+
+ota:
+  platform: esphome
+
+web_server:
+  port: 80
+  auth:
+    username: !secret esphome_web_username
+    password: !secret esphome_web_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: ${device_name}
+    password: ${ap_password}
+
+captive_portal:
+
+time:
+  - platform: homeassistant
+    id: ha_time
+
+uart:
+  id: mod_bus
+  tx_pin: D6
+  rx_pin: D7
+  baud_rate: 9600
+  parity: NONE
+  stop_bits: 1
+
+modbus:
+  id: mb
+
+modbus_controller:
+  - id: imars
+    modbus_id: mb
+    address: 1
+    command_throttle: 20ms
+    update_interval: 15s
+
+###############################################################################
+# S E N S O R S
+###############################################################################
+sensor:
+  # ---- power / energy --------------------------------------------------------
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Output Peak Power"
+    address: 5632
+    register_type: holding
+    value_type: U_DWORD
+    unit_of_measurement: W
+    device_class: power
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "AC Output Power"
+    address: 5797
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: W
+    device_class: power
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "DC Input Power"
+    address: 5795
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: W
+    device_class: power
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Yield Today"
+    address: 5654
+    register_type: holding
+    value_type: U_DWORD
+    unit_of_measurement: kWh
+    device_class: energy
+    accuracy_decimals: 2
+    state_class: total_increasing
+    filters: [ { multiply: 0.01 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Yield Lifetime"
+    address: 5714
+    register_type: holding
+    value_type: U_DWORD
+    unit_of_measurement: kWh
+    device_class: energy
+    accuracy_decimals: 2
+    state_class: total_increasing
+    filters: [ { multiply: 0.01 } ]
+
+  # ---- cumulative timers -----------------------------------------------------
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Run Time"
+    address: 5650
+    register_type: holding
+    value_type: U_DWORD
+    unit_of_measurement: s
+    icon: mdi:timer
+    state_class: total_increasing
+    accuracy_decimals: 0
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Generation Time"
+    address: 5652
+    register_type: holding
+    value_type: U_DWORD
+    unit_of_measurement: s
+    icon: mdi:timer-outline
+    state_class: total_increasing
+    accuracy_decimals: 0
+
+  # ---- DC side ---------------------------------------------------------------
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV1 Voltage"
+    address: 5776
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: V
+    device_class: voltage
+    accuracy_decimals: 1
+    filters: [ { multiply: 0.1 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV1 Current"
+    address: 5777
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: A
+    device_class: current
+    accuracy_decimals: 1
+    filters: [ { multiply: 0.1 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV2 Voltage"
+    address: 5778
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: V
+    device_class: voltage
+    accuracy_decimals: 1
+    filters: [ { multiply: 0.1 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV2 Current"
+    address: 5779
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: A
+    device_class: current
+    accuracy_decimals: 1
+    filters: [ { multiply: 0.1 } ]
+
+  # ---- AC side ---------------------------------------------------------------
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "AC Voltage"
+    address: 5784
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: V
+    device_class: voltage
+    accuracy_decimals: 1
+    filters: [ { multiply: 0.1 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "AC Current"
+    address: 5785
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: A
+    device_class: current
+    accuracy_decimals: 1
+    filters: [ { multiply: 0.1 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Bus Voltage"
+    address: 5790
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: V
+    device_class: voltage
+    accuracy_decimals: 1
+    filters: [ { multiply: 0.1 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Grid Frequency"
+    address: 5792
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: Hz
+    device_class: frequency
+    accuracy_decimals: 2
+    filters: [ { multiply: 0.01 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Power Factor"
+    address: 5793
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 3
+    filters: [ { multiply: 0.001 } ]
+
+  # ---- health ----------------------------------------------------------------
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Booster Temperature"
+    address: 5798
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 2
+    filters: [ { multiply: 0.01 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Isolation Resistance"
+    address: 5804
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: kΩ
+    icon: mdi:omega
+    accuracy_decimals: 0
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Leakage Current"
+    address: 5805
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: mA
+    icon: mdi:current-dc
+    accuracy_decimals: 2
+    filters: [ { multiply: 0.01 } ]
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "DC Residual Current"
+    address: 5806
+    register_type: holding
+    value_type: U_WORD
+    unit_of_measurement: mA
+    icon: mdi:current-dc
+    accuracy_decimals: 2
+    filters: [ { multiply: 0.01 } ]
+
+###############################################################################
+# BINARY SENSORS (status / fault bitmaps) — all marked (Alpha)
+###############################################################################
+binary_sensor:
+  # --- inverter state ---------------------------------------------------------
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Standby (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0001
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Error Latched (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0002
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV Power Available (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0004
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Grid Present (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0008
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Inverter Running (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0010
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Feeding (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0020
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Derating (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0040
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Fan Running (Alpha)"
+    address: 4161
+    register_type: holding
+    bitmask: 0x0080
+    entity_category: diagnostic
+
+  # --- alarm bits -------------------------------------------------------------
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV1 Undervoltage (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0001
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV2 Undervoltage (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0002
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Grid Undervoltage (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0004
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Grid Overvoltage (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0008
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Grid Under-Frequency (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0010
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Grid Over-Frequency (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0020
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Clock Failure (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0040
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Grid Loss (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0080
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "PV Overvoltage (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0100
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Bus Overvoltage (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0200
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Boost Fault (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0400
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "AC Overcurrent (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x0800
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Over-Temperature (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x1000
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "Isolation Low (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x2000
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "IGBT Fault (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x4000
+    device_class: problem
+    entity_category: diagnostic
+
+  - platform: modbus_controller
+    modbus_controller_id: imars
+    name: "DSP Link Fault (Alpha)"
+    address: 4194
+    register_type: holding
+    bitmask: 0x8000
+    device_class: problem
+    entity_category: diagnostic
