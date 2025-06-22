@@ -16,6 +16,8 @@ Add a 3 V-capable **MAX485 or SN65HVD** transceiver and four dupont leads.
 
 Power arrives through the first two pins; the differential pair carries Modbus RTU at 9600 baud.
 
+![iMars connector to use](./connection-example.jpg)
+
 **Do not use the RS485-S service port**—its register map appears to be different and is not yet documented.
 
 ## Flashing and first boot
